@@ -21,6 +21,57 @@ subject-wise analytics.
 - **Filterable:** Instantly toggle the graph between different exam formats.
 - **Privacy Focused:** 100% local SQLite database. No cloud, no tracking.
 
+## Installation
+
+### Nix/OS
+
+You can install it declaratively on NixOS or via Home Manager without manually
+compiling.
+
+#### 1. Quick Try
+
+Run immediately without installing:
+
+```bash
+nix run github:yourusername/akri
+```
+
+#### 2. Add to Configuration (NixOS / Home Manager)
+
+Add Akri to your `flake.nix` inputs:
+
+```Nix
+{
+  inputs.akri.url = "github:yourusername/akri";
+  # Optional: Deduplicate dependencies
+  inputs.akri.inputs.nixpkgs.follows = "nixpkgs";
+
+  outputs = { self, nixpkgs, akri, ... }: {
+    # For NixOS:
+    nixosConfigurations.hostname = nixpkgs.lib.nixosSystem {
+      modules = [
+        ({ pkgs, ... }: {
+          environment.systemPackages = [ akri.packages.${pkgs.system}.default ];
+        })
+      ];
+    };
+
+    # For Home Manager:
+    homeConfigurations."username" = home-manager.lib.homeManagerConfiguration {
+      modules = [
+        ({ pkgs, ... }: {
+          home.packages = [ akri.packages.${pkgs.system}.default ];
+        })
+      ];
+    };
+  };
+}
+```
+
+### Other
+
+See the Releases tab for precompiled binaries of newer versions.
+
 ## 🛠️ Development Setup
 
 You need **Rust** and **Deno** installed.
@@ -67,6 +118,7 @@ MIT. Built for a one-day fun side project challenge.
 
 ## Disclaimer
 
-- Logo was created by ChatGPT. If enough people like the project and want me to change it
-  maybe I will.
-- Some code was written with the help of AI (Gemini 3 Pro Preview), mainly for the workflow, documentation and some css help.
+- Logo was created by ChatGPT. If enough people like the project and want me to
+  change it maybe I will.
+- Some code was written with the help of AI (Gemini 3 Pro Preview), mainly for
+  the workflow, documentation and some css help.
