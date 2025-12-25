@@ -1,10 +1,11 @@
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
   import Chart from "chart.js/auto";
+  import type { Chart as ChartJS, ChartData } from "chart.js";
 
-  let { data } = $props();
-  let canvas;
-  let chartInstance;
+  let { data }: { data: ChartData<"line"> } = $props();
+  let canvas: HTMLCanvasElement;
+  let chartInstance: ChartJS;
 
   $effect(() => {
     if (chartInstance && data) {
@@ -14,10 +15,8 @@
   });
 
   onMount(() => {
-    // Global Chart Defaults for Dark Mode
     Chart.defaults.color = "#a1a1aa";
     Chart.defaults.borderColor = "#27272a";
-
     chartInstance = new Chart(canvas, {
       type: "line",
       data: data,

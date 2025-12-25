@@ -63,4 +63,9 @@ Akri uses a local SQLite database named tracking.db.
 
 ## License
 
-MIT. Built for a one-day side project challenge.
+MIT. Built for a one-day fun side project challenge.
+
+## Disclaimer
+
+- Logo was created by ChatGPT. If enough people like it and want me to change it
+  maybe I will.

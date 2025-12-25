@@ -13,7 +13,7 @@
     X,
   } from "@lucide/svelte";
   import { path } from "@tauri-apps/api";
-    import type { Template, TestRecord } from "$lib/types";
+  import type { Template, TestRecord } from "$lib/types";
 
   type Subject = {
     name: string;
@@ -87,7 +87,6 @@
     count: filteredHistory.length,
   });
 
-  // --- ACTIONS ---
   async function loadData() {
     history = await invoke("get_history");
     templates = await invoke("get_templates");
@@ -163,7 +162,6 @@
 
 <div class="min-h-screen bg-background p-8 font-sans text-foreground">
   <div class="mx-auto max-w-5xl space-y-8">
-    <!-- HEADER -->
     <header class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div
@@ -189,8 +187,6 @@
         </button>
       </div>
     </header>
-
-    <!-- MAIN CHART CARD -->
     <div class="rounded-xl border bg-card text-card-foreground shadow">
       <div class="flex flex-col space-y-1.5 p-6 pb-2">
         <div class="flex items-center justify-between">
@@ -224,8 +220,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Filter Dropdown -->
           <div class="relative w-[180px]">
             <Funnel
               class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none"
@@ -249,8 +243,6 @@
         <Chart data={chartData} />
       </div>
     </div>
-
-    <!-- HISTORY LIST -->
     <div class="space-y-4">
       <h3
         class="text-sm font-medium text-muted-foreground uppercase tracking-wider"
@@ -305,8 +297,6 @@
       </div>
     </div>
   </div>
-
-  <!-- MODAL: TEST -->
   {#if showTestModal}
     <div
       class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
@@ -463,8 +453,6 @@
       </form>
     </div>
   {/if}
-
-  <!-- MODAL: TEMPLATES -->
   {#if showTemplateModal}
     <div
       class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"

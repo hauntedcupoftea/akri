@@ -7,8 +7,6 @@ use std::collections::HashMap;
 use std::fs;
 use tauri::{AppHandle, Manager};
 
-// --- INIT ---
-
 pub fn init_db(app_handle: &AppHandle) -> Result<Connection> {
     let app_dir = app_handle.path().app_data_dir().unwrap();
     if !app_dir.exists() {
@@ -19,7 +17,6 @@ pub fn init_db(app_handle: &AppHandle) -> Result<Connection> {
 
     conn.execute("PRAGMA foreign_keys = ON;", [])?;
 
-    // Table 1: Tests (Snapshot of config + Pre-calculated totals)
     conn.execute(
         "CREATE TABLE IF NOT EXISTS tests (
             id INTEGER PRIMARY KEY,
@@ -34,7 +31,6 @@ pub fn init_db(app_handle: &AppHandle) -> Result<Connection> {
         [],
     )?;
 
-    // Table 2: Entries (Performance Data)
     conn.execute(
         "CREATE TABLE IF NOT EXISTS entries (
             id INTEGER PRIMARY KEY,
@@ -48,7 +44,6 @@ pub fn init_db(app_handle: &AppHandle) -> Result<Connection> {
         [],
     )?;
 
-    // Table 3: Templates (UI Defaults, subjects stored as JSON)
     conn.execute(
         "CREATE TABLE IF NOT EXISTS templates (
             id INTEGER PRIMARY KEY,
@@ -64,17 +59,13 @@ pub fn init_db(app_handle: &AppHandle) -> Result<Connection> {
     Ok(conn)
 }
 
-// --- CORE LOGIC: RECALCULATION ---
-
 fn recalculate_test_stats(tx: &Transaction, test_id: i64) -> Result<()> {
-    // 1. Get Config
     let (c_pts, w_pts, is_neg): (f64, f64, bool) = tx.query_row(
         "SELECT correct_points, wrong_points, is_negative FROM tests WHERE id = ?1",
         [test_id],
         |row| Ok((row.get(0)?, row.get(1)?, row.get::<_, i32>(2)? == 1)),
     )?;
 
-    // 2. Get Subjects
     let mut stmt =
         tx.prepare("SELECT total_q, attempted_q, correct_q FROM entries WHERE test_id = ?1")?;
     let rows = stmt.query_map([test_id], |row| {
@@ -85,7 +76,6 @@ fn recalculate_test_stats(tx: &Transaction, test_id: i64) -> Result<()> {
         ))
     })?;
 
-    // 3. Sum
     let mut grand_score = 0.0;
     let mut grand_max_score = 0.0;
     let mut grand_correct = 0;
@@ -117,7 +107,6 @@ fn recalculate_test_stats(tx: &Transaction, test_id: i64) -> Result<()> {
         0.0
     };
 
-    // 4. Update
     tx.execute(
         "UPDATE tests SET score_pct = ?1, accuracy_pct = ?2 WHERE id = ?3",
         params![final_score_pct, final_acc_pct, test_id],
@@ -126,10 +115,7 @@ fn recalculate_test_stats(tx: &Transaction, test_id: i64) -> Result<()> {
     Ok(())
 }
 
-// --- TEST CRUD ---
-
 pub fn create_entry(conn: &mut Connection, data: TestInput) -> Result<()> {
-    // Manual calculation for first insert to save a query roundtrip
     let mut grand_score = 0.0;
     let mut grand_max = 0.0;
     let mut grand_correct = 0;
@@ -295,8 +281,6 @@ pub fn delete_test(conn: &mut Connection, id: i64) -> Result<()> {
     conn.execute("DELETE FROM tests WHERE id = ?1", [id])?;
     Ok(())
 }
-
-// --- SUBJECT CRUD ---
 
 pub fn add_subject(conn: &mut Connection, data: AddSubjectInput) -> Result<()> {
     let tx = conn.transaction()?;
