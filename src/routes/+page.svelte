@@ -2,162 +2,140 @@
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
   import Chart from "$lib/Chart.svelte";
-  import {
-    ChevronDown,
-    Funnel,
-    Plus,
-    Settings,
-    Target,
-    Trash2,
-    Trophy,
-    X,
-  } from "@lucide/svelte";
-  import { path } from "@tauri-apps/api";
-  import type { Template, TestRecord } from "$lib/types";
-
-  type Subject = {
-    name: string;
-    total_q: number;
-    attempted_q: number;
-    correct_q: number;
-  };
+  import { Plus, Trash2, Settings, X, Trophy, Target, Funnel, ChevronDown } from "@lucide/svelte";
+  import type { TestRecord, Template, TestForm } from "$lib/types";
 
   let history = $state<TestRecord[]>([]);
   let templates = $state<Template[]>([]);
   let selectedFilter = $state("All");
-
+  
   let showTestModal = $state(false);
   let showTemplateModal = $state(false);
 
-  let testForm = $state({
-    date: new Date().toISOString().split("T")[0],
-    name: "",
-    correct_points: 4,
-    wrong_points: 1,
-    is_negative: true,
-    subjects: [] as Subject[],
-  });
-  let tmplForm = $state({
-    name: "",
-    correct_points: 4,
-    wrong_points: 1,
-    is_negative: true,
-    subjects: [{ name: "Physics", default_total: 25 }],
-  });
+  let testForm = $state<TestForm>({ date: new Date().toISOString().split('T')[0], name: "", correct_points: 4, wrong_points: 1, is_negative: true, subjects: [] });
+  let tmplForm = $state<Template>({ name: "", correct_points: 4, wrong_points: 1, is_negative: true, subjects: [{ name: "Physics", default_total: 25 }] });
 
-  let availableFilters = $derived.by(
-    () => [
-      "All",
-      ...Array.from(new Set(history.map((h) => h.marking_config))),
-    ],
-  );
-  let filteredHistory = $derived(
-    selectedFilter === "All"
-      ? history
-      : history.filter((h) => h.marking_config === selectedFilter),
-  );
+  let availableFilters = $derived.by(() => ["All", ...Array.from(new Set(history.map(h => h.marking_config)))]);
+  let filteredHistory = $derived(selectedFilter === "All" ? history : history.filter(h => h.marking_config === selectedFilter));
 
-  let chartData = $derived({
-    labels: filteredHistory.map((h) => h.date).reverse(),
-    datasets: [
-      {
-        label: "Score %",
-        data: filteredHistory.map((h) => h.total_score_pct).reverse(),
-        borderColor: "#3b82f6",
-        backgroundColor: "rgba(59, 130, 246, 0.1)",
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: "Accuracy %",
-        data: filteredHistory.map((h) => h.total_accuracy_pct).reverse(),
-        borderColor: "#10b981",
-        borderDash: [4, 4],
+  let chartData = $derived.by(() => {
+    const reversedHistory = [...filteredHistory].reverse();
+    const labels = reversedHistory.map(h => h.date);
+
+    const allSubjects = new Set<string>();
+    reversedHistory.forEach(h => h.subjects.forEach(s => allSubjects.add(s.name)));
+    const subjectList = Array.from(allSubjects);
+
+    const subjectColors = ['#c084fc', '#fb923c', '#f472b6', '#22d3ee', '#facc15'];
+
+    const subjectScoreDatasets = subjectList.map((subName, index) => {
+      const color = subjectColors[index % subjectColors.length];
+      
+      return {
+        label: `${subName} Score`,
+        data: reversedHistory.map(h => {
+          const s = h.subjects.find(sub => sub.name === subName);
+          return s ? s.score_pct : null;
+        }),
+        type: 'line' as const,
+        borderColor: color,
+        backgroundColor: color,
         borderWidth: 2,
         tension: 0.3,
-      },
-    ],
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        pointBorderColor: color,
+        pointBackgroundColor: '#020617',
+        order: 2
+      };
+    });
+
+    const subjectAccuracyDatasets = subjectList.map((subName, index) => {
+      const color = subjectColors[index % subjectColors.length];
+      
+      return {
+        label: `${subName} Accuracy`,
+        data: reversedHistory.map(h => {
+          const s = h.subjects.find(sub => sub.name === subName);
+          return s ? s.accuracy_pct : null;
+        }),
+        type: 'line' as const,
+        borderColor: color,
+        backgroundColor: color + '20',
+        borderWidth: 1,
+        tension: 0.3,
+        fill: true,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointBorderColor: color,
+        pointBackgroundColor: '#020617',
+        order: 3
+      };
+    });
+
+    return {
+      labels,
+      datasets: [
+        { 
+          label: 'Total Score %', 
+          data: reversedHistory.map(h => h.total_score_pct), 
+          type: 'bar' as const,
+          backgroundColor: '#6366f1',
+          borderColor: '#6366f1',
+          borderWidth: 0,
+          borderRadius: 4,
+          order: 4
+        },
+        { 
+          label: 'Total Accuracy %', 
+          data: reversedHistory.map(h => h.total_accuracy_pct), 
+          type: 'line' as const,
+          borderColor: '#10b981',
+          backgroundColor: '#10b98130',
+          borderWidth: 2,
+          tension: 0.3,
+          fill: true,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointBorderColor: '#10b981',
+          pointBackgroundColor: '#020617',
+          order: 5
+        },
+        ...subjectScoreDatasets,
+        ...subjectAccuracyDatasets
+      ]
+    };
   });
 
   let stats = $derived({
-    avgScore: filteredHistory.length
-      ? (filteredHistory.reduce((a, b) => a + b.total_score_pct, 0) /
-        filteredHistory.length).toFixed(1)
-      : 0,
-    count: filteredHistory.length,
+    avgScore: filteredHistory.length ? (filteredHistory.reduce((a, b) => a + b.total_score_pct, 0) / filteredHistory.length).toFixed(1) : 0,
+    count: filteredHistory.length
   });
 
-  async function loadData() {
-    history = await invoke("get_history");
-    templates = await invoke("get_templates");
-  }
-
+  async function loadData() { history = await invoke("get_history"); templates = await invoke("get_templates"); }
+  
   function applyTemplate(id: string) {
-    const t = templates.find((x) => x.id === parseInt(id));
+    const t = templates.find(x => x.id === parseInt(id));
     if (t) {
-      testForm = {
-        ...testForm,
-        correct_points: t.correct_points,
-        wrong_points: t.wrong_points,
-        is_negative: t.is_negative,
-        subjects: t.subjects.map((s) => ({
-          name: s.name,
-          total_q: s.default_total,
-          attempted_q: 0,
-          correct_q: 0,
-        })),
-      };
+      testForm = { ...testForm, correct_points: t.correct_points, wrong_points: t.wrong_points, is_negative: t.is_negative, subjects: t.subjects.map(s => ({ name: s.name, total_q: s.default_total, attempted_q: 0, correct_q: 0 })) };
     }
   }
 
   async function saveTest(e?: Event) {
-    if (e) e.preventDefault();
-    await invoke("add_test", {
-      data: {
-        ...testForm,
-        correct_points: Number(testForm.correct_points),
-        wrong_points: Number(testForm.wrong_points),
-        subjects: testForm.subjects.map((s) => ({
-          ...s,
-          total_q: Number(s.total_q),
-          attempted_q: Number(s.attempted_q),
-          correct_q: Number(s.correct_q),
-        })),
-      },
-    });
-    showTestModal = false;
-    loadData();
+    if(e) e.preventDefault();
+    await invoke("add_test", { data: { ...testForm, correct_points: Number(testForm.correct_points), wrong_points: Number(testForm.wrong_points), subjects: testForm.subjects.map(s => ({ ...s, total_q: Number(s.total_q), attempted_q: Number(s.attempted_q), correct_q: Number(s.correct_q) })) }});
+    showTestModal = false; loadData();
   }
   async function saveTemplate(e?: Event) {
-    if (e) e.preventDefault();
-    await invoke("create_template", {
-      data: {
-        ...tmplForm,
-        correct_points: Number(tmplForm.correct_points),
-        wrong_points: Number(tmplForm.wrong_points),
-        subjects: tmplForm.subjects.map((s) => ({
-          name: s.name,
-          default_total: Number(s.default_total),
-        })),
-      },
-    });
-    showTemplateModal = false;
-    loadData();
+    if(e) e.preventDefault();
+    await invoke("create_template", { data: { ...tmplForm, correct_points: Number(tmplForm.correct_points), wrong_points: Number(tmplForm.wrong_points), subjects: tmplForm.subjects.map(s => ({ name: s.name, default_total: Number(s.default_total) })) }});
+    showTemplateModal = false; loadData();
   }
-  async function deleteItem(type: "test" | "template", id: number) {
-    if (confirm("Delete item?")) {
-      await invoke(type === "test" ? "delete_test" : "delete_template", {
-        id,
-      });
-      loadData();
-    }
+  async function deleteItem(type: 'test'|'template', id: number) {
+      if(confirm("Delete item?")) { await invoke(type === 'test' ? "delete_test" : "delete_template", { id }); loadData(); }
   }
 
   onMount(loadData);
-  onMount(async () => {
-    const appData = await path.appDataDir();
-    console.log("Database is located at:", appData);
-  });
 </script>
 
 <div class="min-h-screen bg-background p-8 font-sans text-foreground">
@@ -252,46 +230,67 @@
       <div class="grid gap-3">
         {#each filteredHistory as item}
           <div
-            class="flex items-center justify-between rounded-lg border bg-card p-4 transition-all hover:bg-accent/50 hover:border-blue-500/50 group"
+            class="rounded-lg border bg-card transition-all hover:bg-accent/50 hover:border-blue-500/50 group"
           >
-            <div class="flex items-center gap-4">
-              <div
-                class="flex h-12 w-12 flex-col items-center justify-center rounded-md border bg-muted/50 text-center"
-              >
-                <span class="text-sm font-bold">{item.date.split("-")[1]}/{
-                    item.date.split("-")[2]
+            <div class="flex items-center justify-between p-4">
+              <div class="flex items-center gap-4">
+                <div
+                  class="flex h-12 w-12 flex-col items-center justify-center rounded-md border bg-muted/50 text-center"
+                >
+                  <span class="text-sm font-bold">{item.date.split("-")[1]}/{
+                      item.date.split("-")[2]
+                    }</span>
+                  <span class="text-[10px] text-muted-foreground">{
+                    item.date.split("-")[0]
                   }</span>
-                <span class="text-[10px] text-muted-foreground">{
-                  item.date.split("-")[0]
-                }</span>
+                </div>
+                <div>
+                  <p class="font-medium leading-none text-foreground">
+                    {item.name || "Untitled Test"}
+                  </p>
+                  <p class="mt-1 text-xs text-muted-foreground">
+                    {item.marking_config} • {item.subjects.length} Subjects
+                  </p>
+                </div>
               </div>
-              <div>
-                <p class="font-medium leading-none text-foreground">
-                  {item.name || "Untitled Test"}
-                </p>
-                <p class="mt-1 text-xs text-muted-foreground">
-                  {item.marking_config} • {item.subjects.length} Subjects
-                </p>
+              <div class="flex items-center gap-6">
+                <div class="text-right">
+                  <p class="text-lg font-bold text-blue-500">
+                    {item.total_score_pct.toFixed(1)}%
+                  </p>
+                  <p class="text-xs text-muted-foreground">
+                    Accuracy: {item.total_accuracy_pct.toFixed(0)}%
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onclick={() => deleteItem("test", item.id)}
+                  class="text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Delete test"
+                >
+                  <Trash2 class="h-4 w-4" />
+                </button>
               </div>
             </div>
-            <div class="flex items-center gap-6">
-              <div class="text-right">
-                <p class="text-lg font-bold text-blue-500">
-                  {item.total_score_pct.toFixed(1)}%
-                </p>
-                <p class="text-xs text-muted-foreground">
-                  Accuracy: {item.total_accuracy_pct.toFixed(0)}%
-                </p>
+            {#if item.subjects.length > 0}
+              <div class="border-t px-4 py-3 bg-muted/20">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {#each item.subjects as subject}
+                    <div class="flex flex-col gap-1">
+                      <div class="flex items-baseline justify-between">
+                        <span class="text-xs font-medium text-muted-foreground truncate pr-2">{subject.name}</span>
+                        <span class="text-sm font-semibold" class:text-blue-500={subject.score_pct >= 75} class:text-emerald-500={subject.score_pct >= 90} class:text-amber-500={subject.score_pct >= 50 && subject.score_pct < 75} class:text-red-500={subject.score_pct < 50}>
+                          {subject.score_pct.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div class="text-[10px] text-muted-foreground">
+                        {subject.raw.correct}/{subject.raw.attempted} • {subject.accuracy_pct.toFixed(0)}% acc
+                      </div>
+                    </div>
+                  {/each}
+                </div>
               </div>
-              <button
-                type="button"
-                onclick={() => deleteItem("test", item.id)}
-                class="text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label="Delete test"
-              >
-                <Trash2 class="h-4 w-4" />
-              </button>
-            </div>
+            {/if}
           </div>
         {/each}
       </div>
