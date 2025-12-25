@@ -1,0 +1,8 @@
+{
+  "nodeModulesDir": "manual",
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"],
+    "types": ["svelte"]
+  },
+  "unstable": ["fmt-component"]
+}
