@@ -38,7 +38,7 @@
         ];
 
         pname = "akri";
-        version = "0.1.0";
+        version = "0.1.1";
         description = "Local-first test tracking dashboard";
 
         frontend = pkgs.stdenv.mkDerivation {
@@ -47,7 +47,7 @@
           nativeBuildInputs = [pkgs.deno];
           outputHashAlgo = "sha256";
           outputHashMode = "recursive";
-          outputHash = "sha256-B5KWHUiwm4x1HsBDmy/3r5cFn2XaEmWOEk4dGlpi8Mo=";
+          outputHash = "sha256-XspVFbwxLs+/k2l2yk01u6T0NXXVAFgVSGxJgZEiUfc=";
 
           buildPhase = ''
             export DENO_DIR=$TMPDIR/deno-cache
