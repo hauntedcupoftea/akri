@@ -67,5 +67,6 @@ MIT. Built for a one-day fun side project challenge.
 
 ## Disclaimer
 
-- Logo was created by ChatGPT. If enough people like it and want me to change it
+- Logo was created by ChatGPT. If enough people like the project and want me to change it
   maybe I will.
+- Some code was written with the help of AI (Gemini 3 Pro Preview), mainly for the workflow, documentation and some css help.
