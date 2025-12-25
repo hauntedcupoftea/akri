@@ -33,7 +33,7 @@ compiling.
 Run immediately without installing:
 
 ```bash
-nix run github:yourusername/akri
+nix run github:hauntedcupoftea/akri
 ```
 
 #### 2. Add to Configuration (NixOS / Home Manager)
@@ -78,7 +78,7 @@ You need **Rust** and **Deno** installed.
 
 1. **Clone the repo**
    ```bash
-   git clone https://github.com/yourusername/akri.git
+   git clone https://github.com/hauntecupoftea/akri.git
    cd akri
    ```
 
