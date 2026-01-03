@@ -42,7 +42,7 @@ Add Akri to your `flake.nix` inputs:
 
 ```Nix
 {
-  inputs.akri.url = "github:yourusername/akri";
+  inputs.akri.url = "github:hauntedcupoftea/akri";
   # Optional: Deduplicate dependencies
   inputs.akri.inputs.nixpkgs.follows = "nixpkgs";
 
