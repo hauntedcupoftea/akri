@@ -44,7 +44,9 @@
         frontend = pkgs.buildNpmPackage {
           name = "${pname}-frontend-${version}";
           src = pkgs.lib.cleanSource ./.;
-          npmDepsHash = "sha256-7PQOLo5oRtZSwqhaXUGieqHTIcnamz788gzMT/f/ndY==";
+          npmDepsHash = "sha256-kdQvu8aQoq5sQ1QCoxylLyTOSiLOhnsQcz9Hixaroho=";
+          npmFlags = ["--legacy-peer-deps"];
+          makeCacheWritable = true;
           nativeBuildInputs = [pkgs.deno];
           buildPhase = ''
             export DENO_NO_UPDATE_CHECK=1
