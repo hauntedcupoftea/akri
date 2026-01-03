@@ -41,18 +41,13 @@
         version = "0.1.1";
         description = "Local-first test tracking dashboard";
 
-        frontend = pkgs.stdenv.mkDerivation {
+        frontend = pkgs.buildNpmPackage {
           name = "${pname}-frontend-${version}";
-          src = ./.;
+          src = pkgs.lib.cleanSource ./.;
+          npmDepsHash = "sha256-7PQOLo5oRtZSwqhaXUGieqHTIcnamz788gzMT/f/ndY==";
           nativeBuildInputs = [pkgs.deno];
-          outputHashAlgo = "sha256";
-          outputHashMode = "recursive";
-          outputHash = "sha256-XspVFbwxLs+/k2l2yk01u6T0NXXVAFgVSGxJgZEiUfc=";
-
           buildPhase = ''
-            export DENO_DIR=$TMPDIR/deno-cache
-            deno install --allow-scripts
-            export PATH=$PWD/node_modules/.bin:$PATH
+            export DENO_NO_UPDATE_CHECK=1
             deno task build
           '';
 
